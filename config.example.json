@@ -1,0 +1,14 @@
+{
+    "api_url": "https://bandcamp.com/api/codes/1/verify",
+    "min_delay_sec": 1,
+    "max_delay_sec": 5,
+    "timeout": 25,
+    "max_codes": 2000,
+    "log_file": "verificator.log",
+    "log_format": "json",
+    "log_level": "INFO",
+    "csrf_enabled": true,
+    "host": "127.0.0.1",
+    "port": 5000,
+    "debug": false
+}

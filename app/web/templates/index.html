@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bandcamp Code Verificator</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-dark: #4338CA;
+            --success-color: #10B981;
+            --danger-color: #EF4444;
+            --warning-color: #F59E0B;
+            --bg-dark: #1F2937;
+            --bg-light: #F9FAFB;
+            --text-dark: #111827;
+            --text-muted: #6B7280;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 1rem 1rem 0 0 !important;
+            padding: 1.5rem;
+            border: none;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 2rem;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            border: 2px solid #E5E7EB;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        textarea {
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+        }
+
+        .progress {
+            height: 2rem;
+            border-radius: 0.5rem;
+            background: #E5E7EB;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            font-weight: 600;
+            transition: width 0.3s ease;
+        }
+
+        .table-responsive {
+            border-radius: 0.5rem;
+            overflow: hidden;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            margin: 0;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg-dark);
+            color: white;
+        }
+
+        th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            padding: 1rem !important;
+        }
+
+        td {
+            padding: 0.75rem !important;
+            vertical-align: middle;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-light);
+        }
+
+        .badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .alert {
+            border: none;
+            border-radius: 0.5rem;
+            border-left: 4px solid;
+        }
+
+        .alert-warning {
+            background: #FEF3C7;
+            border-left-color: var(--warning-color);
+            color: #92400E;
+        }
+
+        .resp-cell {
+            max-width: 400px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            padding: 0.5rem;
+            background: #F3F4F6;
+            border-radius: 0.25rem;
+        }
+
+        .footer {
+            margin-top: 2rem;
+            padding: 1rem;
+            text-align: center;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1>🎵 Bandcamp Code Verificator</h1>
+                <p class="subtitle">Verify your Bandcamp download codes with ease</p>
+            </div>
+
+            <div class="card-body p-4">
+                {% if has_credentials %}
+                <div class="alert alert-success mb-4">
+                    <strong>✅ Credentials Configured!</strong> Your Bandcamp credentials are loaded from
+                    <code>.env</code> file.
+                    Just paste your codes and click verify!
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-4">
+                    <strong>⚠️ Setup Required:</strong> Create a <code>.env</code> file with your credentials (see
+                    <code>.env.example</code>),
+                    or enter them manually below.
+                </div>
+                {% endif %}
+
+                <form id="verifyForm">
+                    <div class="row g-3">
+                        <!-- Codes Input -->
+                        <div class="col-12">
+                            <label for="codes" class="form-label">📝 Download Codes</label>
+                            <textarea id="codes" class="form-control" rows="10"
+                                placeholder="Enter one code per line&#10;Example:&#10;XXXX-YYYY-ZZZZ&#10;AAAA-BBBB-CCCC"
+                                required></textarea>
+                            <small class="text-muted">Maximum {{ max_codes }} codes. One code per line.</small>
+                        </div>
+
+                        {% if not has_credentials %}
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <strong>💡 Smart Feature:</strong> Click button below to automatically extract
+                                credentials from your browser!
+                                <br><small>Make sure you're logged into Bandcamp in Chrome/Firefox/Edge</small>
+                            </div>
+                            <button type="button" id="btnAutoExtract" class="btn btn-outline-primary mb-3">
+                                🤖 Auto-Extract from Browser
+                            </button>
+                            <div id="extractStatus" class="mb-3" style="display: none;"></div>
+                        </div>
+
+                        <!-- Crumb -->
+                        <div class="col-md-12">
+                            <label for="crumb" class="form-label">🔑 Crumb</label>
+                            <input type="text" id="crumb" class="form-control"
+                                placeholder="|api/codes/1/verify|1759468523|HTNmuiFhDBD3w/Ylg7GlDUjCmi8=" required>
+                            <small class="text-muted">API authentication crumb from your session</small>
+                        </div>
+
+                        <!-- Client ID -->
+                        <div class="col-md-6">
+                            <label for="clientId" class="form-label">🆔 Client ID</label>
+                            <input type="text" id="clientId" class="form-control" placeholder="2F468B341CC6977..."
+                                required>
+                        </div>
+
+                        <!-- Session -->
+                        <div class="col-md-6">
+                            <label for="session" class="form-label">🔐 Session</label>
+                            <input type="text" id="session" class="form-control"
+                                placeholder="1%09r%3A%5B%22...%22%5D%09t%3A..." required>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <!-- Buttons -->
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" id="btnStart" class="btn btn-primary">
+                            🚀 Start Verification
+                        </button>
+                        <button type="button" id="btnStop" class="btn btn-danger" disabled>
+                            ⏹️ Stop
+                        </button>
+                        <button type="button" id="btnExport" class="btn btn-success" disabled>
+                            📥 Export CSV
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Progress -->
+                <div class="mt-4">
+                    <div class="progress">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                            role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0"
+                            aria-valuemax="100">0%</div>
+                    </div>
+                    <div id="statusText" class="status-text">Ready to verify codes</div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="table-responsive mt-4" id="resultsContainer" style="display: none;">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th style="width: 200px;">Code</th>
+                                <th style="width: 100px;">Status</th>
+                                <th style="width: 100px;">Delay</th>
+                                <th style="width: 120px;">Time</th>
+                                <th>Response</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Delay: {{ min_delay }}-{{ max_delay }} seconds per request | Log file: verificator.log</p>
+            <p>Made with ❤️ for Bandcamp users</p>
+        </div>
+    </div>
+
+    <script>
+        const csrfToken = "{{ csrf_token }}";
+        const maxCodes = {{ max_codes }};
+        const hasCredentials = {% if has_credentials %}true{% else %} false{% endif %};
+
+        const elements = {
+            form: document.getElementById('verifyForm'),
+            codes: document.getElementById('codes'),
+            crumb: document.getElementById('crumb'),
+            clientId: document.getElementById('clientId'),
+            session: document.getElementById('session'),
+            btnStart: document.getElementById('btnStart'),
+            btnStop: document.getElementById('btnStop'),
+            btnExport: document.getElementById('btnExport'),
+            progressBar: document.getElementById('progressBar'),
+            statusText: document.getElementById('statusText'),
+            resultsContainer: document.getElementById('resultsContainer'),
+            resultsBody: document.getElementById('resultsBody'),
+        };
+
+        let stopFlag = false;
+        let results = [];
+
+        function parseCodes(text) {
+            return text.split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+        }
+
+        function updateProgress(current, total) {
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+            elements.progressBar.style.width = percent + '%';
+            elements.progressBar.textContent = percent + '%';
+            elements.progressBar.setAttribute('aria-valuenow', percent);
+        }
+
+        function updateStatus(text) {
+            elements.statusText.textContent = text;
+        }
+
+        function addResultRow(index, code, status, delaySec, elapsedMs, body, success) {
+            const tr = document.createElement('tr');
+            tr.className = 'fade-in';
+
+            const statusBadge = success
+                ? '<span class="badge bg-success">✓ Success</span>'
+                : `<span class="badge bg-danger">✗ Failed</span>`;
+
+            let responseText = '';
+            if (typeof body === 'object') {
+                responseText = JSON.stringify(body, null, 2);
+            } else {
+                responseText = String(body || '');
+            }
+
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td><code>${escapeHtml(code.substring(0, 30))}${code.length > 30 ? '...' : ''}</code></td>
+                <td>${statusBadge}<br><small class="text-muted">HTTP ${status}</small></td>
+                <td>${delaySec}s</td>
+                <td>${elapsedMs.toFixed(0)}ms</td>
+                <td><div class="resp-cell">${escapeHtml(responseText)}</div></td>
+            `;
+
+            elements.resultsBody.appendChild(tr);
+
+            // Auto-scroll to bottom
+            elements.resultsContainer.scrollTop = elements.resultsContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function verifyCode(code, index, total) {
+            // Use credentials from form if available, otherwise backend will use config
+            const payload = {
+                csrf_token: csrfToken,
+                code: code,
+                index: index,
+                total: total,
+            };
+
+            // Only add credentials if form fields exist (not auto-configured)
+            if (elements.crumb) {
+                payload.crumb = elements.crumb.value.trim();
+            }
+            if (elements.clientId) {
+                payload.client_id = elements.clientId.value.trim();
+            }
+            if (elements.session) {
+                payload.session = elements.session.value.trim();
+            }
+
+            const response = await fetch('/api/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+            return {
+                status: response.status,
+                ...data,
+            };
+        }
+
+        function exportToCSV() {
+            if (results.length === 0) return;
+
+            const headers = ['No', 'Code', 'HTTP Status', 'Delay (s)', 'Time (ms)', 'Response', 'Success'];
+            const rows = [headers.join(',')];
+
+            results.forEach((r, i) => {
+                const response = typeof r.body === 'object' ? JSON.stringify(r.body) : String(r.body || '');
+                const row = [
+                    i + 1,
+                    `"${r.code.replace(/"/g, '""')}"`,
+                    r.status,
+                    r.delay_sec,
+                    r.elapsed_ms.toFixed(0),
+                    `"${response.replace(/"/g, '""')}"`,
+                    r.success ? 'Yes' : 'No',
+                ];
+                rows.push(row.join(','));
+            });
+
+            const csv = rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `bandcamp_results_${new Date().getTime()}.csv`;
+            link.click();
+        }
+
+        elements.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const codes = parseCodes(elements.codes.value);
+
+            if (codes.length === 0) {
+                alert('No codes entered!');
+                return;
+            }
+
+            if (codes.length > maxCodes) {
+                alert(`Too many codes! Maximum is ${maxCodes}.`);
+                return;
+            }
+
+            // Reset
+            stopFlag = false;
+            results = [];
+            elements.resultsBody.innerHTML = '';
+            elements.resultsContainer.style.display = 'block';
+            updateProgress(0, codes.length);
+
+            // UI state
+            elements.btnStart.disabled = true;
+            elements.btnStop.disabled = false;
+            elements.btnExport.disabled = true;
+            elements.form.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+
+            updateStatus('Starting verification...');
+
+            for (let i = 0; i < codes.length; i++) {
+                if (stopFlag) {
+                    updateStatus('❌ Stopped by user');
+                    break;
+                }
+
+                const code = codes[i];
+                updateStatus(`⏳ Verifying ${i + 1}/${codes.length}: ${code.substring(0, 20)}...`);
+
+                try {
+                    const result = await verifyCode(code, i, codes.length);
+
+                    const success = result.ok === true;
+                    addResultRow(
+                        i,
+                        code,
+                        result.status || 0,
+                        result.delay_sec || 0,
+                        result.elapsed_ms || 0,
+                        result.body,
+                        success
+                    );
+
+                    results.push({
+                        code: code,
+                        status: result.status || 0,
+                        delay_sec: result.delay_sec || 0,
+                        elapsed_ms: result.elapsed_ms || 0,
+                        body: result.body,
+                        success: success,
+                    });
+                } catch (error) {
+                    console.error('Error:', error);
+                    addResultRow(i, code, 0, 0, 0, `Error: ${error.message}`, false);
+                    results.push({
+                        code: code,
+                        status: 0,
+                        delay_sec: 0,
+                        elapsed_ms: 0,
+                        body: `Error: ${error.message}`,
+                        success: false,
+                    });
+                }
+
+                updateProgress(i + 1, codes.length);
+            }
+
+            // UI state
+            elements.btnStart.disabled = false;
+            elements.btnStop.disabled = true;
+            elements.btnExport.disabled = false;
+            elements.form.querySelectorAll('input, textarea').forEach(el => el.disabled = false);
+
+            const successCount = results.filter(r => r.success).length;
+            updateStatus(`✅ Complete! ${successCount}/${results.length} codes verified successfully`);
+        });
+
+
+        // Auto-extract button handler
+        const btnAutoExtract = document.getElementById('btnAutoExtract');
+        const extractStatus = document.getElementById('extractStatus');
+
+        if (btnAutoExtract) {
+            btnAutoExtract.addEventListener('click', async () => {
+                btnAutoExtract.disabled = true;
+                btnAutoExtract.innerHTML = '⏳ Extracting...';
+                extractStatus.style.display = 'block';
+                extractStatus.className = 'alert alert-info';
+                extractStatus.textContent = '🔍 Reading cookies from your browser...';
+
+                try {
+                    const response = await fetch('/api/auto-extract', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            csrf_token: csrfToken,
+                        }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.ok && data.credentials) {
+                        // Fill in the form fields
+                        if (data.credentials.client_id && elements.clientId) {
+                            elements.clientId.value = data.credentials.client_id;
+                        }
+                        if (data.credentials.session && elements.session) {
+                            elements.session.value = data.credentials.session;
+                        }
+                        if (data.credentials.crumb && elements.crumb) {
+                            elements.crumb.value = data.credentials.crumb;
+                        }
+
+                        extractStatus.className = 'alert alert-success';
+                        extractStatus.innerHTML = '<strong>✓ Success!</strong> Credentials extracted and filled automatically! You can now verify codes.';
+                        btnAutoExtract.innerHTML = '✓ Extracted!';
+                        btnAutoExtract.classList.remove('btn-outline-primary');
+                        btnAutoExtract.classList.add('btn-success');
+                    } else {
+                        extractStatus.className = 'alert alert-danger';
+                        extractStatus.innerHTML = '<strong>✗ Failed:</strong> ' + (data.error || 'Could not extract credentials') +
+                            '<br><small>Make sure you are logged into Bandcamp in Chrome/Firefox/Edge and have visited bandcamp.com/yum</small>';
+                        btnAutoExtract.innerHTML = '🤖 Try Again';
+                        btnAutoExtract.disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Auto-extract error:', error);
+                    extractStatus.className = 'alert alert-danger';
+                    extractStatus.innerHTML = '<strong>✗ Error:</strong> ' + error.message +
+                        '<br><small>Make sure browser-cookie3 is installed: pip install browser-cookie3</small>';
+                    btnAutoExtract.innerHTML = '🤖 Try Again';
+                    btnAutoExtract.disabled = false;
+                }
+            });
+        }
+
+        elements.btnStop.addEventListener('click', () => {
+            stopFlag = true;
+            elements.btnStop.disabled = true;
+            updateStatus('Stopping...');
+        });
+
+        elements.btnExport.addEventListener('click', exportToCSV);
+    </script>
+</body>
+
+</html>

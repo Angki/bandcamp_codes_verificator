@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+
+# Uploads & Exports
+uploads/
+exports/
+*.csv
+*.json
+
+# Test outputs
+test_results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+config.json
+bandcamp_checker.log
+verificator.log
+
+# Don't ignore example config
+!config.example.json
+!tests/sample_codes.txt
