@@ -62,8 +62,9 @@ python cli.py verify --input codes.txt --output results.csv
 python cli.py verify \
   --input codes.txt \
   --crumb "|api/codes/1/verify|1759468523|HTNmuiFhDBD3w..." \
-  --client-id "2F468B341CC6977..." \
-  --session "1%09r%3A%5B%22...%22%5D..." \
+  --client-id "2F468B341CC697... " \
+  --session "1%09r%3A%5B%22..." \
+  --identity "7%09ORa7wa4GGV7..." \
   --output results.csv
 ```
 
@@ -96,6 +97,7 @@ To use this tool, you need to extract the following values from your browser whi
    - **crumb**: From request payload
    - **client_id**: From cookies
    - **session**: From cookies
+   - **identity**: From cookies (Required for verification)
 
 ## 📁 Project Structure
 
