@@ -44,6 +44,9 @@ config.json
 bandcamp_checker.log
 verificator.log
 
+# Playwright persistent browser profile (contains sensitive session cookies)
+bandcamp_profile/
+
 # Don't ignore example config
 !config.example.json
 !tests/sample_codes.txt
