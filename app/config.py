@@ -61,8 +61,9 @@ class Config:
     
     # Bandcamp Credentials (from .env file)
     BANDCAMP_CRUMB = os.environ.get("BANDCAMP_CRUMB", "")
-    BANDCAMP_CLIENT_ID = os.environ.get("BANDCAMP_CLIENT_ID", "")
-    BANDCAMP_SESSION = os.environ.get("BANDCAMP_SESSION", "")
+    BANDCAMP_CLIENT_ID = os.environ.get("BANDCAMP_CLIENT_ID", "2F468B341CC6977036E49EBB0B6BB3A621721E8E7ED18615503DB5745B1D7772")
+    BANDCAMP_SESSION = os.environ.get("BANDCAMP_SESSION", "1%09r%3A%5B%22nilZ0c0x1772042139%22%2C%22374859956a1577887883c0x1772041658%22%2C%22324224306a3163526261a1577887883x1772041641%22%5D%09t%3A1772041244%09bp%3A1")
+    BANDCAMP_IDENTITY = os.environ.get("BANDCAMP_IDENTITY", "7%09ORa7wa4GGV7uB64FjeNZia7wpV%2Bdp7NHJ6ddST7CU0g%3D%09%7B%22id%22%3A945599202%2C%22ex%22%3A0%7D")
     
     @classmethod
     def has_credentials(cls) -> bool:
@@ -74,7 +75,8 @@ class Config:
         return bool(
             cls.BANDCAMP_CRUMB and 
             cls.BANDCAMP_CLIENT_ID and 
-            cls.BANDCAMP_SESSION
+            cls.BANDCAMP_SESSION and
+            cls.BANDCAMP_IDENTITY
         )
     
     @classmethod

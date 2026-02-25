@@ -85,20 +85,19 @@ class CLI:
             sys.exit(1)
         
         # Get credentials
-        crumb = args.crumb
-        client_id = args.client_id
-        session = args.session
+        crumb = args.crumb or Config.BANDCAMP_CRUMB
+        client_id = args.client_id or Config.BANDCAMP_CLIENT_ID
+        session = args.session or Config.BANDCAMP_SESSION
+        identity = getattr(Config, "BANDCAMP_IDENTITY", "")
         
         # Interactive prompts if not provided
-        if not crumb:
-            crumb = input("Enter crumb: ").strip()
         if not client_id:
             client_id = input("Enter client_id: ").strip()
         if not session:
             session = input("Enter session: ").strip()
         
-        if not all([crumb, client_id, session]):
-            self.print("Error: All credentials (crumb, client_id, session) are required", "red bold")
+        if not all([client_id, session]):
+            self.print("Error: client_id and session are required", "red bold")
             sys.exit(1)
         
         # Dry run check
@@ -117,6 +116,7 @@ class CLI:
                 crumb=crumb,
                 client_id=client_id,
                 session=session,
+                identity=identity,
             )
         except ValueError as e:
             self.print(f"Error: {e}", "red bold")
