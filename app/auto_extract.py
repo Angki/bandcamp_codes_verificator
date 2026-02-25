@@ -37,56 +37,68 @@ class CredentialExtractor:
         self.session: Optional[str] = None
         self.identity: Optional[str] = None
         self.crumb: Optional[str] = None
-    
-    def extract_from_browser(self, browser_name: Optional[str] = None) -> bool:
-        """Extract cookies from browser.
+        user_data_dir = os.path.join(os.getcwd(), 'bandcamp_profile')
+        logger.info(f"Launching Playwright to extract cookies. Profile: {user_data_dir}")
         
-        Args:
-            browser_name: Browser to use ('chrome', 'firefox', 'edge', or None for auto-detect)
+        from playwright.sync_api import sync_playwright
         
-        Returns:
-            True if successful
-        """
-        if not BROWSER_COOKIE_AVAILABLE:
-            logger.warning("browser_cookie3 not installed. Run: pip install browser-cookie3")
+        try:
+            with sync_playwright() as p:
+                logger.info("Opening browser window... Please log in to Bandcamp if prompted.")
+                
+                # Launch persistent context with headless=False so user can log in
+                browser = p.chromium.launch_persistent_context(
+                    user_data_dir=user_data_dir,
+                    headless=False,  # VERY IMPORTANT: Visible window so they can type credentials
+                    viewport={'width': 1000, 'height': 800}
+                )
+                
+                page = browser.new_page() if len(browser.pages) == 0 else browser.pages[0]
+                
+                try:
+                    # Go to YUM page to check login status
+                    page.goto(self.BANDCAMP_YUM_URL, wait_until="networkidle", timeout=30000)
+                    
+                    # Wait for identity cookie to appear (up to 60 seconds if they need to log in)
+                    logger.info("Waiting up to 60 seconds for successful Bandcamp login...")
+                    
+                    import time
+                    start_time = time.time()
+                    logged_in = False
+                    
+                    while time.time() - start_time < 60:
+                        cookies = browser.cookies()
+                        cookie_dict = {c['name']: c['value'] for c in cookies if 'bandcamp.com' in c.get('domain', '')}
+                        
+                        if 'client_id' in cookie_dict and 'session' in cookie_dict and 'identity' in cookie_dict:
+                            self.client_id = cookie_dict['client_id']
+                            self.session = cookie_dict['session']
+                            self.identity = cookie_dict['identity']
+                            logged_in = True
+                            
+                            # Also grab HTML for crumb extraction later
+                            self._cached_html = page.content()
+                            break
+                            
+                        # Refresh page or just wait
+                        time.sleep(2)
+                        
+                    if logged_in:
+                        logger.info("✓ Successfully extracted authentication cookies via Playwright!")
+                        return True
+                    else:
+                        logger.warning("Timeout: Could not detect Bandcamp login cookies after 60 seconds.")
+                        return False
+                        
+                except Exception as inner_e:
+                    logger.warning(f"Playwright navigation/wait failed: {inner_e}")
+                    return False
+                finally:
+                    browser.close()
+                    
+        except Exception as e:
+            logger.error(f"Playwright launch failed. Error: {e}")
             return False
-        
-        browsers = {
-            'chrome': browser_cookie3.chrome,
-            'firefox': browser_cookie3.firefox,
-            'edge': browser_cookie3.edge,
-            'chromium': browser_cookie3.chromium,
-        }
-        
-        # Try specified browser or all browsers
-        to_try = [browser_name] if browser_name and browser_name in browsers else browsers.keys()
-        
-        for browser in to_try:
-            try:
-                logger.info(f"Trying to extract cookies from {browser}...")
-                
-                # Get cookies
-                jar = browsers[browser](domain_name=self.BANDCAMP_DOMAIN)
-                
-                # Extract client_id, session, and identity
-                for cookie in jar:
-                    if cookie.name == 'client_id':
-                        self.client_id = cookie.value
-                    elif cookie.name == 'session':
-                        self.session = cookie.value
-                    elif cookie.name == 'identity':
-                        self.identity = cookie.value
-                
-                if self.client_id and self.session and self.identity:
-                    logger.info(f"✓ Successfully extracted cookies from {browser}")
-                    return True
-            
-            except Exception as e:
-                logger.debug(f"Failed to extract from {browser}: {e}")
-                continue
-        
-        logger.warning("Could not extract cookies from any browser")
-        return False
     
     def extract_crumb_from_page(self) -> bool:
         """Extract crumb from Bandcamp page.
@@ -103,35 +115,13 @@ class CredentialExtractor:
             return False
         
         try:
-            logger.info("Extracting crumb from Bandcamp page using Playwright...")
-            from playwright.sync_api import sync_playwright
+            logger.info("Extracting crumb from Bandcamp page HTML...")
             
-            html_text = ""
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                context = browser.new_context(
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
-                )
-                
-                cookies = [
-                    {"name": "client_id", "value": self.client_id, "domain": ".bandcamp.com", "path": "/"},
-                    {"name": "session", "value": self.session, "domain": ".bandcamp.com", "path": "/"},
-                    {"name": "js_logged_in", "value": "1", "domain": ".bandcamp.com", "path": "/"}
-                ]
-                if hasattr(self, 'identity') and self.identity:
-                    cookies.append({"name": "identity", "value": self.identity, "domain": ".bandcamp.com", "path": "/"})
-                    
-                context.add_cookies(cookies)
-                page = context.new_page()
-                
-                try:
-                    page.goto(self.BANDCAMP_YUM_URL, wait_until="networkidle", timeout=15000)
-                    html_text = page.content()
-                except Exception as e:
-                    logger.warning(f"Playwright navigation failed: {e}")
-                    return False
-                finally:
-                    browser.close()
+            # If we already have the HTML cached from extract_from_browser, use it
+            if hasattr(self, '_cached_html') and self._cached_html:
+                html_text = self._cached_html
+            else:
+                return False
             
             # Parse HTML
             soup = BeautifulSoup(html_text, 'html.parser')

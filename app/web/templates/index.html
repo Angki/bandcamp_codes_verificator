@@ -5,232 +5,594 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bandcamp Code Verificator</title>
-
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Verify your Bandcamp download codes easily with Playwright-powered automation.">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
 
     <style>
         :root {
-            --primary-color: #4F46E5;
-            --primary-dark: #4338CA;
-            --success-color: #10B981;
-            --danger-color: #EF4444;
-            --warning-color: #F59E0B;
-            --bg-dark: #1F2937;
-            --bg-light: #F9FAFB;
-            --text-dark: #111827;
-            --text-muted: #6B7280;
+            --bg-base: #0a0d14;
+            --bg-surface: #10141f;
+            --bg-card: #141824;
+            --bg-card2: #1a1f30;
+            --border: rgba(255, 255, 255, 0.07);
+            --border-glow: rgba(99, 102, 241, 0.4);
+
+            --accent: #6366f1;
+            --accent-2: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+
+            --green: #34d399;
+            --green-glow: rgba(52, 211, 153, 0.2);
+            --red: #f87171;
+            --red-glow: rgba(248, 113, 113, 0.2);
+            --amber: #fbbf24;
+            --amber-glow: rgba(251, 191, 36, 0.15);
+            --cyan: #22d3ee;
+            --cyan-glow: rgba(34, 211, 238, 0.2);
+
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #475569;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
         }
 
-        * {
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 2rem 0;
+            overflow-x: hidden;
         }
 
-        .container {
-            max-width: 1200px;
+        /* ── Animated Background ── */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 10% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 90% 80%, rgba(34, 211, 238, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 80% at 50% 50%, rgba(52, 211, 153, 0.04) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
         }
 
-        .card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.95);
+        .page-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 20px 64px;
         }
 
-        .card-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            color: white;
-            border-radius: 1rem 1rem 0 0 !important;
-            padding: 1.5rem;
-            border: none;
+        /* ── Header ── */
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 36px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
         }
 
-        h1 {
+        .site-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 24px var(--accent-glow);
+            flex-shrink: 0;
+        }
+
+        .logo-text h1 {
+            font-size: 1.35rem;
             font-weight: 700;
-            font-size: 2rem;
-            margin: 0;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1.2;
+            background: linear-gradient(90deg, var(--text-primary) 0%, var(--accent-2) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .subtitle {
-            opacity: 0.9;
+        .logo-text small {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .header-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            color: var(--green);
+            font-weight: 500;
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+
+        /* ── Layout ── */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 950px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .card-head {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-head-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .card-head-icon.purple {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-2);
+        }
+
+        .card-head-icon.green {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--green);
+        }
+
+        .card-head-icon.cyan {
+            background: rgba(34, 211, 238, 0.12);
+            color: var(--cyan);
+        }
+
+        .card-head h2 {
             font-size: 0.95rem;
-            margin-top: 0.25rem;
-        }
-
-        .form-label {
             font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
+            color: var(--text-primary);
         }
 
-        .form-control,
-        .form-select {
-            border: 2px solid #E5E7EB;
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
+        .card-head small {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 1px;
         }
 
-        .form-control:focus,
-        .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        .card-body {
+            padding: 24px;
+        }
+
+        /* ── Form Elements ── */
+        .field-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 10px 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input[type="text"]::placeholder,
+        textarea::placeholder {
+            color: var(--text-muted);
         }
 
         textarea {
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
             resize: vertical;
+            min-height: 220px;
         }
 
+        .field-hint {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* ── Buttons ── */
         .btn {
-            padding: 0.75rem 2rem;
-            border-radius: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            font-family: inherit;
+            font-size: 0.875rem;
             font-weight: 600;
-            transition: all 0.3s ease;
             border: none;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            padding: 10px 20px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+            background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 14px var(--accent-glow);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+            background: rgba(248, 113, 113, 0.12);
+            color: var(--red);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(248, 113, 113, 0.2);
+            box-shadow: 0 0 12px var(--red-glow);
         }
 
         .btn-success {
-            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--green);
+            border: 1px solid rgba(52, 211, 153, 0.3);
         }
 
-        .progress {
-            height: 2rem;
-            border-radius: 0.5rem;
-            background: #E5E7EB;
+        .btn-success:hover:not(:disabled) {
+            background: rgba(52, 211, 153, 0.2);
+            box-shadow: 0 0 12px var(--green-glow);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--accent-2);
+            border: 1px solid var(--border-glow);
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            background: var(--accent-glow);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        /* ── Alert / Status Banners ── */
+        .alert {
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .alert-success {
+            background: rgba(52, 211, 153, 0.08);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            color: var(--green);
+        }
+
+        .alert-warning {
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+            color: var(--amber);
+        }
+
+        .alert-info {
+            background: rgba(34, 211, 238, 0.08);
+            border: 1px solid rgba(34, 211, 238, 0.25);
+            color: var(--cyan);
+        }
+
+        .alert-danger {
+            background: rgba(248, 113, 113, 0.08);
+            border: 1px solid rgba(248, 113, 113, 0.25);
+            color: var(--red);
+        }
+
+        /* ── Progress Bar ── */
+        .progress-wrap {
+            margin-top: 20px;
+        }
+
+        .progress-track {
+            height: 6px;
+            border-radius: 999px;
+            background: var(--bg-surface);
             overflow: hidden;
         }
 
         .progress-bar {
-            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            font-weight: 600;
-            transition: width 0.3s ease;
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--accent), var(--cyan));
+            transition: width 0.35s ease;
+            width: 0%;
+            box-shadow: 0 0 10px var(--accent-glow);
         }
 
-        .table-responsive {
-            border-radius: 0.5rem;
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        #statusText {
+            color: var(--text-secondary);
+        }
+
+        #progressPct {
+            color: var(--accent-2);
+            font-weight: 600;
+        }
+
+        /* ── Stats Row ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            text-align: center;
+        }
+
+        .stat-card .stat-val {
+            font-size: 1.6rem;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-card .stat-lbl {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .stat-card.green .stat-val {
+            color: var(--green);
+        }
+
+        .stat-card.red .stat-val {
+            color: var(--red);
+        }
+
+        .stat-card.cyan .stat-val {
+            color: var(--cyan);
+        }
+
+        /* ── Results Table ── */
+        .results-wrapper {
+            margin-top: 24px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             overflow: hidden;
-            max-height: 500px;
+        }
+
+        .results-scroller {
+            max-height: 460px;
             overflow-y: auto;
         }
 
+        .results-scroller::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .results-scroller::-webkit-scrollbar-track {
+            background: var(--bg-card);
+        }
+
+        .results-scroller::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 999px;
+        }
+
         table {
-            margin: 0;
+            width: 100%;
+            border-collapse: collapse;
         }
 
         thead {
             position: sticky;
             top: 0;
-            z-index: 10;
-            background: var(--bg-dark);
-            color: white;
+            z-index: 5;
+            background: var(--bg-card2);
         }
 
         th {
-            font-weight: 600;
+            padding: 12px 14px;
+            font-size: 0.72rem;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 0.5px;
-            padding: 1rem !important;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            text-align: left;
         }
 
         td {
-            padding: 0.75rem !important;
+            padding: 11px 14px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border);
             vertical-align: middle;
         }
 
-        tbody tr:hover {
-            background: var(--bg-light);
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .badge {
-            padding: 0.4rem 0.8rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.73rem;
+            font-weight: 700;
         }
 
-        .status-text {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-top: 0.5rem;
+        .badge-success {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(52, 211, 153, 0.3);
         }
 
-        .alert {
-            border: none;
-            border-radius: 0.5rem;
-            border-left: 4px solid;
-        }
-
-        .alert-warning {
-            background: #FEF3C7;
-            border-left-color: var(--warning-color);
-            color: #92400E;
+        .badge-danger {
+            background: rgba(248, 113, 113, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(248, 113, 113, 0.3);
         }
 
         .resp-cell {
-            max-width: 400px;
-            overflow: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            padding: 0.5rem;
-            background: #F3F4F6;
-            border-radius: 0.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            max-width: 380px;
+            overflow-x: auto;
+            padding: 6px 10px;
+            background: var(--bg-surface);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
-        .footer {
-            margin-top: 2rem;
-            padding: 1rem;
-            text-align: center;
-            color: white;
-            font-size: 0.9rem;
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--accent-2);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 1px 5px;
+            border-radius: 4px;
         }
 
-        .footer a {
-            color: white;
-            text-decoration: underline;
-        }
-
-        .spinner-border-sm {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        @keyframes fadeIn {
+        /* ── Fade-in animation ── */
+        @keyframes fadeUp {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(8px);
             }
 
             to {
@@ -240,137 +602,209 @@
         }
 
         .fade-in {
-            animation: fadeIn 0.3s ease;
+            animation: fadeUp 0.3s ease both;
+        }
+
+        /* ── Footer ── */
+        .site-footer {
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .site-footer span {
+            color: var(--accent-2);
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h1>🎵 Bandcamp Code Verificator</h1>
-                <p class="subtitle">Verify your Bandcamp download codes with ease</p>
+    <div class="page-wrapper">
+
+        <!-- ── Header ── -->
+        <header class="site-header">
+            <div class="site-logo">
+                <div class="logo-icon">🎵</div>
+                <div class="logo-text">
+                    <h1>Bandcamp Code Verificator</h1>
+                    <small>Playwright-powered WAF bypass · Batch verification</small>
+                </div>
             </div>
+            <div class="header-badge">
+                <div class="pulse-dot"></div>
+                Playwright Active
+            </div>
+        </header>
 
-            <div class="card-body p-4">
-                {% if has_credentials %}
-                <div class="alert alert-success mb-4">
-                    <strong>✅ Credentials Configured!</strong> Your Bandcamp credentials are loaded from
-                    <code>.env</code> file.
-                    Just paste your codes and click verify!
-                </div>
-                {% else %}
-                <div class="alert alert-warning mb-4">
-                    <strong>⚠️ Setup Required:</strong> Create a <code>.env</code> file with your credentials (see
-                    <code>.env.example</code>),
-                    or enter them manually below.
-                </div>
-                {% endif %}
+        <!-- ── Main Content ── -->
+        <div class="main-grid">
 
-                <form id="verifyForm">
-                    <div class="row g-3">
-                        <!-- Codes Input -->
-                        <div class="col-12">
-                            <label for="codes" class="form-label">📝 Download Codes</label>
-                            <textarea id="codes" class="form-control" rows="10"
-                                placeholder="Enter one code per line&#10;Example:&#10;XXXX-YYYY-ZZZZ&#10;AAAA-BBBB-CCCC"
-                                required></textarea>
-                            <small class="text-muted">Maximum {{ max_codes }} codes. One code per line.</small>
+            <!-- ── LEFT SIDEBAR: Settings ── -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+
+                <!-- Credential Status / Auto-Extract -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon cyan">🔑</div>
+                        <div>
+                            <h2>Credentials</h2>
+                            <small>Session cookies for Bandcamp</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if has_credentials %}
+                        <div class="alert alert-success">
+                            ✅ <strong>Credentials loaded</strong> from <code>.env</code> file. You're ready to go!
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            ⚠️ No <code>.env</code> credentials. Enter them manually or use Auto-Extract below.
                         </div>
 
-                        {% if not has_credentials %}
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <strong>💡 Smart Feature:</strong> Click button below to automatically extract
-                                credentials from your browser!
-                                <br><small>Make sure you're logged into Bandcamp in Chrome/Firefox/Edge</small>
+                        <button type="button" id="btnAutoExtract" class="btn btn-ghost"
+                            style="width: 100%; margin-bottom: 12px;">
+                            🤖 Auto-Extract from Browser
+                        </button>
+                        <div id="extractStatus" class="alert" style="display: none;"></div>
+
+                        <form id="verifyForm">
+                            <div class="field-group">
+                                <label for="crumb">Crumb (Optional)</label>
+                                <input type="text" id="crumb" placeholder="Auto-fetched if left empty">
                             </div>
-                            <button type="button" id="btnAutoExtract" class="btn btn-outline-primary mb-3">
-                                🤖 Auto-Extract from Browser
-                            </button>
-                            <div id="extractStatus" class="mb-3" style="display: none;"></div>
-                        </div>
-
-                        <!-- Crumb -->
-                        <div class="col-md-12">
-                            <label for="crumb" class="form-label">🔑 Crumb (Optional)</label>
-                            <input type="text" id="crumb" class="form-control"
-                                placeholder="Leave empty to auto-extract">
-                            <small class="text-muted">Leave empty to automatically fetch from Bandcamp</small>
-                        </div>
-
-                        <!-- Client ID -->
-                        <div class="col-md-6">
-                            <label for="clientId" class="form-label">🆔 Client ID</label>
-                            <input type="text" id="clientId" class="form-control" placeholder="2F468B341CC6977..."
-                                required>
-                        </div>
-
-                        <!-- Session -->
-                        <div class="col-md-6">
-                            <label for="session" class="form-label">🔐 Session</label>
-                            <input type="text" id="session" class="form-control"
-                                placeholder="1%09r%3A%5B%22...%22%5D%09t%3A..." required>
-                        </div>
-                        {% endif %}
+                            <div class="field-group">
+                                <label for="clientId">Client ID</label>
+                                <input type="text" id="clientId" placeholder="2F468B341CC6977..." required>
+                            </div>
+                            <div class="field-group">
+                                <label for="session">Session Cookie</label>
+                                <input type="text" id="session" placeholder="1%09r%3A%5B%22..." required>
+                            </div>
+                            {% endif %}
                     </div>
-                    <!-- Buttons -->
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" id="btnStart" class="btn btn-primary">
-                            🚀 Start Verification
-                        </button>
-                        <button type="button" id="btnStop" class="btn btn-danger" disabled>
-                            ⏹️ Stop
-                        </button>
-                        <button type="button" id="btnExport" class="btn btn-success" disabled>
-                            📥 Export CSV
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Progress -->
-                <div class="mt-4">
-                    <div class="progress">
-                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                            role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0"
-                            aria-valuemax="100">0%</div>
-                    </div>
-                    <div id="statusText" class="status-text">Ready to verify codes</div>
                 </div>
 
-                <!-- Results Table -->
-                <div class="table-responsive mt-4" id="resultsContainer" style="display: none;">
-                    <table class="table table-hover table-striped">
-                        <thead>
-                            <tr>
-                                <th style="width: 60px;">#</th>
-                                <th style="width: 200px;">Code</th>
-                                <th style="width: 100px;">Status</th>
-                                <th style="width: 100px;">Delay</th>
-                                <th style="width: 120px;">Time</th>
-                                <th>Response</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultsBody">
-                        </tbody>
-                    </table>
+                <!-- Actions Card -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon purple">⚙️</div>
+                        <div>
+                            <h2>Controls</h2>
+                            <small>Run verification batch</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if has_credentials %}<form id="verifyForm">{% endif %}
+                            <div class="btn-row">
+                                <button type="submit" id="btnStart" class="btn btn-primary" form="verifyForm">
+                                    🚀 Start Verification
+                                </button>
+                                <button type="button" id="btnStop" class="btn btn-danger" disabled>
+                                    ⏹ Stop
+                                </button>
+                                <button type="button" id="btnExport" class="btn btn-success" disabled>
+                                    📥 Export CSV
+                                </button>
+                            </div>
+                            {% if has_credentials %}
+                        </form>{% else %}</form>{% endif %}
+
+                        <!-- Progress -->
+                        <div class="progress-wrap">
+                            <div class="progress-track">
+                                <div id="progressBar" class="progress-bar"></div>
+                            </div>
+                            <div class="progress-label">
+                                <span id="statusText">Ready to verify codes</span>
+                                <span id="progressPct">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="stats-row">
+                            <div class="stat-card green">
+                                <span id="statValid" class="stat-val">0</span>
+                                <span class="stat-lbl">Valid</span>
+                            </div>
+                            <div class="stat-card red">
+                                <span id="statInvalid" class="stat-val">0</span>
+                                <span class="stat-lbl">Invalid</span>
+                            </div>
+                            <div class="stat-card cyan">
+                                <span id="statTotal" class="stat-val">0</span>
+                                <span class="stat-lbl">Total</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- ── RIGHT: Codes + Results ── -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+
+                <!-- Codes Input -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon purple">📝</div>
+                        <div>
+                            <h2>Download Codes</h2>
+                            <small>One code per line · Max {{ max_codes }} codes</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <textarea id="codes" form="verifyForm" placeholder="XXXX-YYYY-ZZZZ&#10;AAAA-BBBB-CCCC&#10;..."
+                            required></textarea>
+                        <p class="field-hint">Paste your Bandcamp download codes here. Each line = one code.</p>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="card" id="resultsContainer" style="display: none;">
+                    <div class="card-head">
+                        <div class="card-head-icon green">📊</div>
+                        <div>
+                            <h2>Verification Results</h2>
+                            <small>Live results as each code is checked</small>
+                        </div>
+                    </div>
+                    <div class="results-wrapper">
+                        <div class="results-scroller">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px">#</th>
+                                        <th style="width:180px">Code</th>
+                                        <th style="width:120px">Status</th>
+                                        <th style="width:90px">Delay</th>
+                                        <th style="width:100px">Time</th>
+                                        <th>Response</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <div class="footer">
-            <p>Delay: {{ min_delay }}-{{ max_delay }} seconds per request | Log file: verificator.log</p>
-            <p>Made with ❤️ for Bandcamp users</p>
-        </div>
+        <!-- ── Footer ── -->
+        <footer class="site-footer">
+            <p>Delay: <span>{{ min_delay }}–{{ max_delay }}s</span> per request &nbsp;·&nbsp; Powered by
+                <span>Playwright</span> &nbsp;·&nbsp; Made with ❤️ for Bandcamp users</p>
+        </footer>
     </div>
 
     <script>
         const csrfToken = "{{ csrf_token }}";
         const maxCodes = {{ max_codes }};
-        const hasCredentials = {% if has_credentials %}true{% else %} false{% endif %};
+        const hasCreds = {% if has_credentials %}true{% else %} false{% endif %};
 
-        const elements = {
+        const el = {
             form: document.getElementById('verifyForm'),
             codes: document.getElementById('codes'),
             crumb: document.getElementById('crumb'),
@@ -379,287 +813,196 @@
             btnStart: document.getElementById('btnStart'),
             btnStop: document.getElementById('btnStop'),
             btnExport: document.getElementById('btnExport'),
-            progressBar: document.getElementById('progressBar'),
-            statusText: document.getElementById('statusText'),
-            resultsContainer: document.getElementById('resultsContainer'),
-            resultsBody: document.getElementById('resultsBody'),
+            bar: document.getElementById('progressBar'),
+            pct: document.getElementById('progressPct'),
+            status: document.getElementById('statusText'),
+            results: document.getElementById('resultsContainer'),
+            tbody: document.getElementById('resultsBody'),
+            statV: document.getElementById('statValid'),
+            statI: document.getElementById('statInvalid'),
+            statT: document.getElementById('statTotal'),
         };
 
         let stopFlag = false;
         let results = [];
+        let cntValid = 0, cntInvalid = 0;
 
-        function parseCodes(text) {
-            return text.split(/\r?\n/)
-                .map(line => line.trim())
-                .filter(line => line.length > 0);
+        function parseCodes(t) {
+            return t.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         }
 
-        function updateProgress(current, total) {
-            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
-            elements.progressBar.style.width = percent + '%';
-            elements.progressBar.textContent = percent + '%';
-            elements.progressBar.setAttribute('aria-valuenow', percent);
+        function setProgress(cur, total) {
+            const pct = total > 0 ? Math.round((cur / total) * 100) : 0;
+            el.bar.style.width = pct + '%';
+            el.pct.textContent = pct + '%';
         }
 
-        function updateStatus(text) {
-            elements.statusText.textContent = text;
+        function setStatus(txt) { el.status.textContent = txt; }
+
+        function updateStats() {
+            el.statV.textContent = cntValid;
+            el.statI.textContent = cntInvalid;
+            el.statT.textContent = results.length;
         }
 
-        function addResultRow(index, code, status, delaySec, elapsedMs, body, success) {
+        function addRow(index, code, status, delaySec, elapsedMs, body, success) {
             const tr = document.createElement('tr');
             tr.className = 'fade-in';
 
-            const statusBadge = success
-                ? '<span class="badge bg-success">✓ Success</span>'
-                : `<span class="badge bg-danger">✗ Failed</span>`;
+            const badge = success
+                ? '<span class="badge badge-success">✓ Valid</span>'
+                : '<span class="badge badge-danger">✗ Invalid</span>';
 
-            let responseText = '';
-            if (typeof body === 'object') {
-                responseText = JSON.stringify(body, null, 2);
-            } else {
-                responseText = String(body || '');
-            }
+            let resp = typeof body === 'object' ? JSON.stringify(body, null, 2) : String(body || '');
 
             tr.innerHTML = `
-                <td>${index + 1}</td>
-                <td><code>${escapeHtml(code.substring(0, 30))}${code.length > 30 ? '...' : ''}</code></td>
-                <td>${statusBadge}<br><small class="text-muted">HTTP ${status}</small></td>
-                <td>${delaySec}s</td>
-                <td>${elapsedMs.toFixed(0)}ms</td>
-                <td><div class="resp-cell">${escapeHtml(responseText)}</div></td>
-            `;
-
-            elements.resultsBody.appendChild(tr);
-
-            // Auto-scroll to bottom
-            elements.resultsContainer.scrollTop = elements.resultsContainer.scrollHeight;
+            <td style="color:var(--text-muted);font-size:.8rem">${index + 1}</td>
+            <td><code>${esc(code.substring(0, 30))}${code.length > 30 ? '…' : ''}</code></td>
+            <td>${badge}<br><span style="font-size:.72rem;color:var(--text-muted)">HTTP ${status}</span></td>
+            <td style="color:var(--text-secondary)">${delaySec}s</td>
+            <td style="color:var(--text-secondary)">${elapsedMs.toFixed(0)}ms</td>
+            <td><div class="resp-cell">${esc(resp)}</div></td>
+        `;
+            el.tbody.appendChild(tr);
+            const scroller = document.querySelector('.results-scroller');
+            if (scroller) scroller.scrollTop = scroller.scrollHeight;
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function esc(t) {
+            const d = document.createElement('div');
+            d.textContent = t;
+            return d.innerHTML;
         }
 
         async function verifyCode(code, index, total) {
-            // Use credentials from form if available, otherwise backend will use config
-            const payload = {
-                csrf_token: csrfToken,
-                code: code,
-                index: index,
-                total: total,
-            };
+            const payload = { csrf_token: csrfToken, code, index, total };
+            if (el.crumb) payload.crumb = el.crumb.value.trim();
+            if (el.clientId) payload.client_id = el.clientId.value.trim();
+            if (el.session) payload.session = el.session.value.trim();
 
-            // Only add credentials if form fields exist (not auto-configured)
-            if (elements.crumb) {
-                payload.crumb = elements.crumb.value.trim();
-            }
-            if (elements.clientId) {
-                payload.client_id = elements.clientId.value.trim();
-            }
-            if (elements.session) {
-                payload.session = elements.session.value.trim();
-            }
-
-            const response = await fetch('/api/verify', {
+            const r = await fetch('/api/verify', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-
-            const data = await response.json();
-            return {
-                status: response.status,
-                ...data,
-            };
+            return { status: r.status, ...(await r.json()) };
         }
 
-        function exportToCSV() {
-            if (results.length === 0) return;
-
-            const headers = ['No', 'Code', 'HTTP Status', 'Delay (s)', 'Time (ms)', 'Response', 'Success'];
-            const rows = [headers.join(',')];
-
+        function buildCSV() {
+            const hdr = ['No', 'Code', 'HTTP Status', 'Delay (s)', 'Time (ms)', 'Response', 'Success'];
+            const rows = [hdr.join(',')];
             results.forEach((r, i) => {
-                const response = typeof r.body === 'object' ? JSON.stringify(r.body) : String(r.body || '');
-                const row = [
-                    i + 1,
-                    `"${r.code.replace(/"/g, '""')}"`,
-                    r.status,
-                    r.delay_sec,
-                    r.elapsed_ms.toFixed(0),
-                    `"${response.replace(/"/g, '""')}"`,
-                    r.success ? 'Yes' : 'No',
-                ];
-                rows.push(row.join(','));
+                const resp = typeof r.body === 'object' ? JSON.stringify(r.body) : String(r.body || '');
+                rows.push([i + 1, `"${r.code.replace(/"/g, '""')}"`, r.status, r.delay_sec,
+                r.elapsed_ms.toFixed(0), `"${resp.replace(/"/g, '""')}"`,
+                r.success ? 'Yes' : 'No'].join(','));
             });
-
-            const csv = rows.join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `bandcamp_results_${new Date().getTime()}.csv`;
-            link.click();
+            return rows.join('\n');
         }
 
-        elements.form.addEventListener('submit', async (e) => {
+        el.form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const codes = parseCodes(el.codes.value);
+            if (!codes.length) { alert('No codes entered!'); return; }
+            if (codes.length > maxCodes) { alert(`Max ${maxCodes} codes allowed.`); return; }
 
-            const codes = parseCodes(elements.codes.value);
+            stopFlag = false; results = []; cntValid = 0; cntInvalid = 0;
+            el.tbody.innerHTML = '';
+            el.results.style.display = 'block';
+            setProgress(0, codes.length);
+            updateStats();
 
-            if (codes.length === 0) {
-                alert('No codes entered!');
-                return;
-            }
+            el.btnStart.disabled = true;
+            el.btnStop.disabled = false;
+            el.btnExport.disabled = true;
+            el.form.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
 
-            if (codes.length > maxCodes) {
-                alert(`Too many codes! Maximum is ${maxCodes}.`);
-                return;
-            }
-
-            // Reset
-            stopFlag = false;
-            results = [];
-            elements.resultsBody.innerHTML = '';
-            elements.resultsContainer.style.display = 'block';
-            updateProgress(0, codes.length);
-
-            // UI state
-            elements.btnStart.disabled = true;
-            elements.btnStop.disabled = false;
-            elements.btnExport.disabled = true;
-            elements.form.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
-
-            updateStatus('Starting verification...');
+            setStatus('Starting verification...');
 
             for (let i = 0; i < codes.length; i++) {
-                if (stopFlag) {
-                    updateStatus('❌ Stopped by user');
-                    break;
-                }
-
+                if (stopFlag) { setStatus('❌ Stopped by user'); break; }
                 const code = codes[i];
-                updateStatus(`⏳ Verifying ${i + 1}/${codes.length}: ${code.substring(0, 20)}...`);
+                setStatus(`⏳ Verifying ${i + 1}/${codes.length}: ${code.substring(0, 24)}…`);
 
                 try {
-                    const result = await verifyCode(code, i, codes.length);
-
-                    const success = result.ok === true;
-                    addResultRow(
-                        i,
-                        code,
-                        result.status || 0,
-                        result.delay_sec || 0,
-                        result.elapsed_ms || 0,
-                        result.body,
-                        success
-                    );
-
-                    results.push({
-                        code: code,
-                        status: result.status || 0,
-                        delay_sec: result.delay_sec || 0,
-                        elapsed_ms: result.elapsed_ms || 0,
-                        body: result.body,
-                        success: success,
-                    });
-                } catch (error) {
-                    console.error('Error:', error);
-                    addResultRow(i, code, 0, 0, 0, `Error: ${error.message}`, false);
-                    results.push({
-                        code: code,
-                        status: 0,
-                        delay_sec: 0,
-                        elapsed_ms: 0,
-                        body: `Error: ${error.message}`,
-                        success: false,
-                    });
+                    const r = await verifyCode(code, i, codes.length);
+                    const ok = r.ok === true;
+                    if (ok) cntValid++; else cntInvalid++;
+                    addRow(i, code, r.status || 0, r.delay_sec || 0, r.elapsed_ms || 0, r.body, ok);
+                    results.push({ code, status: r.status || 0, delay_sec: r.delay_sec || 0, elapsed_ms: r.elapsed_ms || 0, body: r.body, success: ok });
+                } catch (err) {
+                    cntInvalid++;
+                    addRow(i, code, 0, 0, 0, `Error: ${err.message}`, false);
+                    results.push({ code, status: 0, delay_sec: 0, elapsed_ms: 0, body: `Error: ${err.message}`, success: false });
                 }
-
-                updateProgress(i + 1, codes.length);
+                setProgress(i + 1, codes.length);
+                updateStats();
             }
 
-            // UI state
-            elements.btnStart.disabled = false;
-            elements.btnStop.disabled = true;
-            elements.btnExport.disabled = false;
-            elements.form.querySelectorAll('input, textarea').forEach(el => el.disabled = false);
-
-            const successCount = results.filter(r => r.success).length;
-            updateStatus(`✅ Complete! ${successCount}/${results.length} codes verified successfully`);
+            el.btnStart.disabled = false;
+            el.btnStop.disabled = true;
+            el.btnExport.disabled = false;
+            el.form.querySelectorAll('input, textarea').forEach(el => el.disabled = false);
+            setStatus(`✅ Complete! ${cntValid}/${results.length} codes verified successfully`);
         });
 
+        el.btnStop.addEventListener('click', () => {
+            stopFlag = true; el.btnStop.disabled = true; setStatus('Stopping…');
+        });
 
-        // Auto-extract button handler
-        const btnAutoExtract = document.getElementById('btnAutoExtract');
-        const extractStatus = document.getElementById('extractStatus');
+        el.btnExport.addEventListener('click', () => {
+            if (!results.length) return;
+            const blob = new Blob([buildCSV()], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `bandcamp_results_${Date.now()}.csv`;
+            a.click();
+        });
 
-        if (btnAutoExtract) {
-            btnAutoExtract.addEventListener('click', async () => {
-                btnAutoExtract.disabled = true;
-                btnAutoExtract.innerHTML = '⏳ Extracting...';
-                extractStatus.style.display = 'block';
-                extractStatus.className = 'alert alert-info';
-                extractStatus.textContent = '🔍 Reading cookies from your browser...';
+        // Auto-Extract
+        const btnAE = document.getElementById('btnAutoExtract');
+        const aeStatus = document.getElementById('extractStatus');
+
+        if (btnAE) {
+            btnAE.addEventListener('click', async () => {
+                btnAE.disabled = true;
+                btnAE.textContent = '⏳ Opening browser window…';
+                aeStatus.className = 'alert alert-info';
+                aeStatus.style.display = 'block';
+                aeStatus.textContent = '🔍 Launching secure Chromium window… Please log into Bandcamp if prompted. (Max 60 seconds)';
 
                 try {
-                    const response = await fetch('/api/auto-extract', {
+                    const r = await fetch('/api/auto-extract', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            csrf_token: csrfToken,
-                        }),
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ csrf_token: csrfToken }),
                     });
-
-                    const data = await response.json();
+                    const data = await r.json();
 
                     if (data.ok && data.credentials) {
-                        // Fill in the form fields
-                        if (data.credentials.client_id && elements.clientId) {
-                            elements.clientId.value = data.credentials.client_id;
-                        }
-                        if (data.credentials.session && elements.session) {
-                            elements.session.value = data.credentials.session;
-                        }
-                        if (data.credentials.crumb && elements.crumb) {
-                            elements.crumb.value = data.credentials.crumb;
-                        }
+                        if (data.credentials.client_id && el.clientId) el.clientId.value = data.credentials.client_id;
+                        if (data.credentials.session && el.session) el.session.value = data.credentials.session;
+                        if (data.credentials.crumb && el.crumb) el.crumb.value = data.credentials.crumb;
 
-                        extractStatus.className = 'alert alert-success';
-                        extractStatus.innerHTML = '<strong>✓ Success!</strong> Credentials extracted and filled automatically! You can now verify codes.';
-                        btnAutoExtract.innerHTML = '✓ Extracted!';
-                        btnAutoExtract.classList.remove('btn-outline-primary');
-                        btnAutoExtract.classList.add('btn-success');
+                        aeStatus.className = 'alert alert-success';
+                        aeStatus.innerHTML = '✅ <strong>Success!</strong> Credentials extracted and filled. You can now verify codes.';
+                        btnAE.textContent = '✓ Extracted!';
                     } else {
-                        extractStatus.className = 'alert alert-danger';
-                        extractStatus.innerHTML = '<strong>✗ Failed:</strong> ' + (data.error || 'Could not extract credentials') +
-                            '<br><small>Make sure you are logged into Bandcamp in Chrome/Firefox/Edge and have visited bandcamp.com/yum</small>';
-                        btnAutoExtract.innerHTML = '🤖 Try Again';
-                        btnAutoExtract.disabled = false;
+                        aeStatus.className = 'alert alert-danger';
+                        aeStatus.innerHTML = `✗ <strong>Failed:</strong> ${data.error || 'Could not extract credentials'}<br><small>Did not detect Bandcamp login in the 60-second window.</small>`;
+                        btnAE.textContent = '🤖 Try Again';
+                        btnAE.disabled = false;
                     }
-                } catch (error) {
-                    console.error('Auto-extract error:', error);
-                    extractStatus.className = 'alert alert-danger';
-                    extractStatus.innerHTML = '<strong>✗ Error:</strong> ' + error.message +
-                        '<br><small>Make sure browser-cookie3 is installed: pip install browser-cookie3</small>';
-                    btnAutoExtract.innerHTML = '🤖 Try Again';
-                    btnAutoExtract.disabled = false;
+                } catch (err) {
+                    aeStatus.className = 'alert alert-danger';
+                    aeStatus.innerHTML = `✗ <strong>Error:</strong> ${err.message}<br><small>Check Python terminal for Playwright error details.</small>`;
+                    btnAE.textContent = '🤖 Try Again';
+                    btnAE.disabled = false;
                 }
             });
         }
-
-        elements.btnStop.addEventListener('click', () => {
-            stopFlag = true;
-            elements.btnStop.disabled = true;
-            updateStatus('Stopping...');
-        });
-
-        elements.btnExport.addEventListener('click', exportToCSV);
     </script>
+
 </body>
 
 </html>
