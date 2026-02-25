@@ -33,9 +33,10 @@ class CredentialExtractor:
     
     def __init__(self):
         """Initialize credential extractor."""
-        self.client_id = None
-        self.session = None
-        self.crumb = None
+        self.client_id: Optional[str] = None
+        self.session: Optional[str] = None
+        self.identity: Optional[str] = None
+        self.crumb: Optional[str] = None
     
     def extract_from_browser(self, browser_name: Optional[str] = None) -> bool:
         """Extract cookies from browser.
@@ -67,14 +68,16 @@ class CredentialExtractor:
                 # Get cookies
                 jar = browsers[browser](domain_name=self.BANDCAMP_DOMAIN)
                 
-                # Extract client_id and session
+                # Extract client_id, session, and identity
                 for cookie in jar:
                     if cookie.name == 'client_id':
                         self.client_id = cookie.value
                     elif cookie.name == 'session':
                         self.session = cookie.value
+                    elif cookie.name == 'identity':
+                        self.identity = cookie.value
                 
-                if self.client_id and self.session:
+                if self.client_id and self.session and self.identity:
                     logger.info(f"✓ Successfully extracted cookies from {browser}")
                     return True
             
@@ -100,26 +103,38 @@ class CredentialExtractor:
             return False
         
         try:
-            logger.info("Extracting crumb from Bandcamp page...")
+            logger.info("Extracting crumb from Bandcamp page using Playwright...")
+            from playwright.sync_api import sync_playwright
             
-            # Prepare session with cookies
-            session = requests.Session()
-            session.cookies.set('client_id', self.client_id, domain='.bandcamp.com')
-            session.cookies.set('session', self.session, domain='.bandcamp.com')
-            
-            # Request the page
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
-            }
-            
-            response = session.get(self.BANDCAMP_YUM_URL, headers=headers, timeout=10)
-            
-            if response.status_code != 200:
-                logger.warning(f"Failed to load page: HTTP {response.status_code}")
-                return False
+            html_text = ""
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                context = browser.new_context(
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
+                )
+                
+                cookies = [
+                    {"name": "client_id", "value": self.client_id, "domain": ".bandcamp.com", "path": "/"},
+                    {"name": "session", "value": self.session, "domain": ".bandcamp.com", "path": "/"},
+                    {"name": "js_logged_in", "value": "1", "domain": ".bandcamp.com", "path": "/"}
+                ]
+                if hasattr(self, 'identity') and self.identity:
+                    cookies.append({"name": "identity", "value": self.identity, "domain": ".bandcamp.com", "path": "/"})
+                    
+                context.add_cookies(cookies)
+                page = context.new_page()
+                
+                try:
+                    page.goto(self.BANDCAMP_YUM_URL, wait_until="networkidle", timeout=15000)
+                    html_text = page.content()
+                except Exception as e:
+                    logger.warning(f"Playwright navigation failed: {e}")
+                    return False
+                finally:
+                    browser.close()
             
             # Parse HTML
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(html_text, 'html.parser')
             
             # Method 1: Look for data-crumb attribute
             crumb_elem = soup.find(attrs={'data-crumb': True})
@@ -146,8 +161,15 @@ class CredentialExtractor:
                         logger.info("✓ Found crumb in script tag (alt format)")
                         return True
             
-            # Method 3: Look in page source
-            match = re.search(r'["\']crumb["\']\s*:\s*["\']([^"\']+)["\']', response.text)
+            # Method 3: Look in page source directly
+            match = re.search(r'&quot;crumb&quot;:&quot;([^&]+)&quot;', html_text)
+            if match:
+                self.crumb = match.group(1)
+                logger.info("✓ Found crumb in page source directly")
+                return True
+                
+            # Method 4: Look in un-escaped page source
+            match = re.search(r'["\']crumb["\']\s*:\s*["\']([^"\']+)["\']', html_text)
             if match:
                 self.crumb = match.group(1)
                 logger.info("✓ Found crumb in page source")

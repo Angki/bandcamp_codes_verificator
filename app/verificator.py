@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional, List, Tuple
 from urllib.parse import urljoin
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+import json
+from urllib.parse import urljoin
 
 from app.config import Config
 from app.logger import logger
@@ -24,6 +24,7 @@ class BandcampVerificator:
         crumb: str,
         client_id: str,
         session: str,
+        identity: Optional[str] = None,
         min_delay: Optional[int] = None,
         max_delay: Optional[int] = None,
     ):
@@ -39,6 +40,20 @@ class BandcampVerificator:
         Raises:
             ValueError: If validation fails
         """
+        # Auto-extract crumb if not provided
+        if not crumb:
+            from app.auto_extract import CredentialExtractor
+            logger.info("Crumb not provided. Attempting to auto-extract from http://bandcamp.com/yum...")
+            extractor = CredentialExtractor()
+            extractor.client_id = client_id
+            extractor.session = session
+            extractor.identity = identity
+            if extractor.extract_crumb_from_page():
+                crumb = extractor.crumb
+                logger.info("Successfully extracted crumb.")
+            else:
+                logger.warning("Failed to automatically extract crumb.")
+
         # Validate inputs
         errors = validate_input(
             crumb=crumb,
@@ -55,49 +70,52 @@ class BandcampVerificator:
         self.crumb = crumb
         self.client_id = sanitize_cookie_value(client_id, Config.MAX_CLIENT_ID_LENGTH)
         self.session = sanitize_cookie_value(session, Config.MAX_SESSION_LENGTH)
+        self.identity = identity or getattr(Config, "BANDCAMP_IDENTITY", "")
         self.min_delay = min_delay or Config.MIN_DELAY_SEC
         self.max_delay = max_delay or Config.MAX_DELAY_SEC
         
-        # Initialize HTTP session
-        self.http_session = self._create_session()
+        # Initialize Playwright Browser session
+        self.pw = None
+        self.browser = None
+        self.context = None
+        self.page = None
+        self._init_browser()
         
-        logger.info("BandcampVerificator initialized")
+        logger.info("BandcampVerificator initialized with Playwright")
     
-    def _create_session(self) -> requests.Session:
-        """Create and configure HTTP session with retry logic.
+    def _init_browser(self):
+        """Initialize Playwright and navigate to Bandcamp."""
+        from playwright.sync_api import sync_playwright
+        self.pw = sync_playwright().start()
         
-        Returns:
-            Configured requests.Session
-        """
-        session = requests.Session()
-        
-        # Configure retry strategy
-        retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["POST"],
+        self.browser = self.pw.chromium.launch(headless=True)
+        self.context = self.browser.new_context(
+            user_agent=Config.USER_AGENT
         )
         
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
+        # Inject required cookies
+        cookies = [
+            {"name": "client_id", "value": self.client_id, "domain": ".bandcamp.com", "path": "/"},
+            {"name": "session", "value": self.session, "domain": ".bandcamp.com", "path": "/"},
+            {"name": "js_logged_in", "value": "1", "domain": ".bandcamp.com", "path": "/"}
+        ]
+        if self.identity:
+            cookies.append({"name": "identity", "value": self.identity, "domain": ".bandcamp.com", "path": "/"})
+            
+        self.context.add_cookies(cookies)
+        self.page = self.context.new_page()
         
-        # Set default headers
-        session.headers.update({
-            "Accept": "*/*",
-            "Content-Type": "application/json",
-            "Origin": "https://bandcamp.com",
-            "Referer": "https://bandcamp.com/yum",
-            "X-Requested-With": "XMLHttpRequest",
-            "User-Agent": Config.USER_AGENT,
-        })
+        # Preload the YUM page to be ready for verifications
+        self.page.goto("https://bandcamp.com/yum", wait_until="networkidle")
         
-        # Set cookies
-        session.cookies.set("client_id", self.client_id, domain=".bandcamp.com")
-        session.cookies.set("session", self.session, domain=".bandcamp.com")
-        
-        return session
+    def close(self):
+        """Clean up the browser instance."""
+        if self.browser:
+            self.browser.close()
+        if self.pw:
+            self.pw.stop()
+
+    
     
     def verify_code(
         self,
@@ -141,73 +159,76 @@ class BandcampVerificator:
                 "success": False,
             }
         
-        # Apply random delay (rate limiting)
+        # Apply random delay (rate limiting) BEFORE action
         delay = random.randint(self.min_delay, self.max_delay)
         time.sleep(delay)
         
-        # Prepare payload
-        payload = {
-            "is_corp": True,
-            "band_id": None,
-            "platform_closed": False,
-            "hard_to_download": False,
-            "fan_logged_in": True,
-            "band_url": None,
-            "was_logged_out": None,
-            "is_https": True,
-            "ref_url": None,
-            "code": code.strip(),
-            "crumb": self.crumb,
-        }
-        
         try:
-            # Make API request
-            response = self.http_session.post(
-                Config.VERIFY_URL,
-                json=payload,
-                timeout=Config.TIMEOUT,
-            )
+            # Ensure we are on the page
+            if "bandcamp.com/yum" not in self.page.url:
+                self.page.goto("https://bandcamp.com/yum", wait_until="networkidle")
+                
+            input_locator = self.page.locator('input[name="code"]').first
+            input_locator.wait_for(state="visible", timeout=10000)
             
-            # Calculate elapsed time
+            input_locator.focus()
+            
+            api_status = 0
+            api_body = {}
+            is_valid_dom = False
+            
+            with self.page.expect_response(lambda r: "api/codes/1/verify" in r.url, timeout=15000) as response_info:
+                input_locator.fill(code)
+                self.page.keyboard.press("Tab")
+                
+            response = response_info.value
+            api_status = response.status
+            try:
+                api_body = response.json()
+            except:
+                api_body = response.text()
+                
+            # Wait for visual checkmark just in case
+            try:
+                self.page.wait_for_selector(".bc-ui.form-icon.check:visible", timeout=1500)
+                is_valid_dom = True
+            except:
+                is_valid_dom = False
+                
             elapsed_ms = (time.time() - start_time) * 1000
             
-            # Parse response
-            status_code = response.status_code
-            
-            try:
-                body = response.json()
-            except ValueError:
-                body = response.text
-            
-            # Determine success
-            ok = 200 <= status_code < 300
-            
+            # Determine success (API gives 200 regardless of already_redeemed, so check JSON for errors if 200)
+            ok = (200 <= api_status < 300)
+            success_payload = ok
+            if isinstance(api_body, dict) and api_body.get('errors'):
+                success_payload = False
+
             # Log the verification
             logger.log_verification(
                 code=code,
-                status=status_code,
-                success=ok,
+                status=api_status,
+                success=success_payload,
                 index=index,
                 total=total,
                 elapsed_ms=elapsed_ms,
                 delay_sec=delay,
-                error=None if ok else f"HTTP {status_code}",
+                error=api_body.get('errors', [{}])[0].get('reason') if isinstance(api_body, dict) and api_body.get('errors') else None,
             )
             
             return {
                 "ok": ok,
-                "status": status_code,
+                "status": api_status,
                 "delay_sec": delay,
                 "elapsed_ms": elapsed_ms,
-                "body": body,
-                "error": None if ok else f"HTTP {status_code}",
+                "body": api_body,
+                "error": None if success_payload else (api_body.get('errors', [{}])[0].get('reason') if isinstance(api_body, dict) and api_body.get('errors') else f"HTTP {api_status}"),
                 "code": code,
-                "success": ok,
+                "success": success_payload,
             }
-        
-        except requests.exceptions.Timeout:
+            
+        except Exception as e:
             elapsed_ms = (time.time() - start_time) * 1000
-            error = f"Request timeout after {Config.TIMEOUT}s"
+            error = f"Browser automation error: {str(e)}"
             
             logger.log_verification(
                 code=code,
@@ -231,7 +252,7 @@ class BandcampVerificator:
                 "success": False,
             }
         
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             elapsed_ms = (time.time() - start_time) * 1000
             error = f"Request error: {str(e)}"
             

@@ -83,7 +83,6 @@ def create_app():
         # Validate inputs
         errors = validate_input(
             code=code,
-            crumb=crumb,
             client_id=client_id,
             session=session_val,
         )
@@ -100,15 +99,18 @@ def create_app():
             
             # Check if we need to create a new verificator
             verificator_key = f"{session_id}_{crumb}_{client_id}"
+            identity = getattr(Config, "BANDCAMP_IDENTITY", "")
             
             if verificator_key not in verificators:
                 verificators[verificator_key] = BandcampVerificator(
                     crumb=crumb,
                     client_id=client_id,
                     session=session_val,
+                    identity=identity,
                 )
             
             verificator = verificators[verificator_key]
+            verificator.last_used = time.time() # Update last used timestamp
             
             # Verify the code
             result = verificator.verify_code(code, index=index, total=total)
